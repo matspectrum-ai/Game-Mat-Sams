@@ -2,7 +2,7 @@
 
 **Tactics. Mayhem. Treats.**
 
-CATastrophe is a browser-first two-player tactics prototype: chess-like pieces, destructible terrain and absurd cat-themed cards.
+CATastrophe is a browser-first two-player tactical board game: chess-inspired movement, destructible terrain, illustrated cat factions and absurd rule-breaking cards.
 
 ## Current vertical slice
 - 7×7 tactical board.
@@ -14,6 +14,11 @@ CATastrophe is a browser-first two-player tactics prototype: chess-like pieces, 
 - Deterministic gameplay RNG.
 - Pure TypeScript game core with Vitest coverage.
 - Phaser 4 renderer separated from game rules.
+- Illustrated SVG cat assets for Moon and Sun factions.
+- Illustrated card art.
+- Event-driven VFX for movement, attacks, cards, destruction and victory.
+- Lightweight procedural Web Audio feedback.
+- Cinematic Mat × Sams match intro.
 
 ## Stack
 - Phaser 4.2.1
@@ -23,16 +28,16 @@ CATastrophe is a browser-first two-player tactics prototype: chess-like pieces, 
 
 ## Run locally
 ```bash
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
 
 Then open the URL printed by Vite.
 
 ## Verify
 ```bash
-npm test
-npm run build
+pnpm test
+pnpm build
 ```
 
 ## Architecture
@@ -50,7 +55,7 @@ Renderer / future authoritative server
 
 The game core is intentionally independent from Phaser, DOM and future Supabase code. Multiplayer will reuse the same command-validation layer rather than trusting client state.
 
-See `docs/game-spec.md` for the v0.1 observable rules and acceptance criteria.
+See `docs/game-spec.md` for the current observable rules and acceptance criteria.
 
 ## Status
-This is a gameplay-first vertical slice. The current board uses temporary procedural/typographic cat pieces. Final hand-drawn 2D art, animation, sound and online rooms are deliberately deferred until the core loop proves fun.
+This is an artistic gameplay vertical slice. The rules engine, event pipeline, illustrated factions, cards, VFX and local two-player loop are functional. Online rooms, authoritative multiplayer and final production-quality hand-drawn asset production remain future phases after playtesting the core loop.
