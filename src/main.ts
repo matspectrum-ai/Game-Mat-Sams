@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import './styles.css';
+import './intro.css';
 import { GameScene } from './game/GameScene';
 
 new Phaser.Game({
@@ -16,4 +17,13 @@ new Phaser.Game({
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
   scene: [GameScene],
+});
+
+const intro = document.querySelector<HTMLElement>('#game-intro');
+const startButton = document.querySelector<HTMLButtonElement>('#start-game');
+
+startButton?.addEventListener('click', () => {
+  if (!intro) return;
+  intro.classList.add('is-leaving');
+  window.setTimeout(() => intro.remove(), 360);
 });
