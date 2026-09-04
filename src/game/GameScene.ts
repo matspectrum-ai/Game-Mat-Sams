@@ -257,7 +257,7 @@ export class GameScene extends Phaser.Scene {
       fontStyle: 'bold',
     }).setOrigin(0.5);
 
-    const hp = this.add.text(x + 23, y - 39, \`${unit.hp}♥\`, {
+    const hp = this.add.text(x + 23, y - 39, `${unit.hp}♥`, {
       fontFamily: 'Georgia, serif',
       fontSize: '10px',
       color: '#ffd5c7',
@@ -380,7 +380,7 @@ export class GameScene extends Phaser.Scene {
       this.selectedUnitId = clicked.id;
       this.selectedCard = null;
       this.swapFirstUnitId = null;
-      this.setStatus(\`${this.prettyUnit(clicked)} selecionado. Dourado = mover. Vermelho = atacar.\`);
+      this.setStatus(`${this.prettyUnit(clicked)} selecionado. Dourado = mover. Vermelho = atacar.`);
       this.renderEverything();
       return;
     }
@@ -428,8 +428,8 @@ export class GameScene extends Phaser.Scene {
     this.swapFirstUnitId = null;
     this.setStatus(
       this.gameState.winner
-        ? \`${this.playerName(this.gameState.winner)} venceu a partida.\`
-        : \`Agora é a vez de ${this.playerName(this.gameState.activePlayer)}.\`,
+        ? `${this.playerName(this.gameState.winner)} venceu a partida.`
+        : `Agora é a vez de ${this.playerName(this.gameState.activePlayer)}.`,
     );
     this.renderEverything();
     this.playFeedback(events);
@@ -466,13 +466,13 @@ export class GameScene extends Phaser.Scene {
     if (sunHp) sunHp.textContent = String(this.gameState.players.sun.hp);
     if (turnPlayer) {
       turnPlayer.textContent = this.gameState.winner
-        ? \`${this.playerName(this.gameState.winner)} venceu\`
+        ? `${this.playerName(this.gameState.winner)} venceu`
         : this.playerName(active);
     }
-    if (turnNumber) turnNumber.textContent = \`#${this.gameState.turn}\`;
+    if (turnNumber) turnNumber.textContent = `#${this.gameState.turn}`;
     if (turnDot) turnDot.style.background = active === 'moon' ? '#9b79bb' : '#d88a4d';
     if (energy) {
-      energy.textContent = \`${'🐾 '.repeat(player.energy)}${'· '.repeat(Math.max(0, player.maxEnergy - player.energy))}\`.trim();
+      energy.textContent = `${'🐾 '.repeat(player.energy)}${'· '.repeat(Math.max(0, player.maxEnergy - player.energy))}`.trim();
     }
     if (log) log.textContent = this.gameState.log[0] ?? 'Miau.';
   }
@@ -490,14 +490,14 @@ export class GameScene extends Phaser.Scene {
       const available = player.hand.includes(card);
       button.type = 'button';
       button.dataset.card = card;
-      button.className = \`card-button${this.selectedCard === card ? ' selected' : ''}\`;
+      button.className = `card-button${this.selectedCard === card ? ' selected' : ''}`;
       button.disabled = !available || player.energy < CARD_COSTS[card] || Boolean(this.gameState.winner);
       button.innerHTML = [
         '<span class="card-grain" aria-hidden="true"></span>',
-        \`<span class="card-cost">${CARD_COSTS[card]} <span>🐾</span></span>\`,
-        \`<span class="card-icon" aria-hidden="true">${CARD_ICONS[card]}</span>\`,
-        \`<strong>${CARD_NAMES[card]}</strong>\`,
-        \`<small>${available ? CARD_DESCRIPTIONS[card] : 'Carta já usada nesta partida.'}</small>\`,
+        `<span class="card-cost">${CARD_COSTS[card]} <span>🐾</span></span>`,
+        `<span class="card-icon" aria-hidden="true">${CARD_ICONS[card]}</span>`,
+        `<strong>${CARD_NAMES[card]}</strong>`,
+        `<small>${available ? CARD_DESCRIPTIONS[card] : 'Carta já usada nesta partida.'}</small>`,
       ].join('');
       button.addEventListener('click', () => {
         this.selectedCard = card;
