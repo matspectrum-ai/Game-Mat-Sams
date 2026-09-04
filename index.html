@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#17120f" />
+    <meta name="description" content="CATastrophe — tactical cat chaos for two players." />
+    <title>CATastrophe — Tactical Cat Chaos</title>
+  </head>
+  <body>
+    <main class="shell">
+      <header class="masthead">
+        <div>
+          <p class="eyebrow">TACTICS · MAYHEM · TREATS</p>
+          <h1>CAT<span>astrophe</span></h1>
+          <p class="subtitle">Xadrez foi um erro. Os gatos pioraram tudo.</p>
+        </div>
+        <button id="restart" class="restart" type="button">Nova partida</button>
+      </header>
+
+      <section class="game-layout" aria-label="CATastrophe game">
+        <div class="board-frame">
+          <div id="game" aria-label="Tabuleiro do jogo"></div>
+        </div>
+
+        <aside class="sidebar">
+          <section class="panel turn-panel">
+            <p class="panel-label">Turno</p>
+            <div class="turn-line">
+              <span id="turn-dot" class="turn-dot"></span>
+              <strong id="turn-player">Lua</strong>
+              <span id="turn-number">#1</span>
+            </div>
+            <p id="status" class="status" aria-live="polite">Escolha um gato para começar a confusão.</p>
+          </section>
+
+          <section class="panel duel-panel">
+            <div class="fighter moon">
+              <div class="portrait">😼</div>
+              <div>
+                <span>Whiskerstein</span>
+                <strong><span id="moon-hp">8</span> ♥</strong>
+              </div>
+            </div>
+            <div class="versus">VS</div>
+            <div class="fighter sun">
+              <div class="portrait">😾</div>
+              <div>
+                <span>Lady Pawsen</span>
+                <strong><span id="sun-hp">8</span> ♥</strong>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel energy-panel">
+            <div>
+              <p class="panel-label">Energia felina</p>
+              <strong id="energy">🐾 🐾 🐾</strong>
+            </div>
+            <p>Uma ação por turno. Cartas também contam como ação.</p>
+          </section>
+
+          <section class="panel cards-panel">
+            <div class="cards-heading">
+              <div>
+                <p class="panel-label">Sua mão</p>
+                <h2>Cartas do caos</h2>
+              </div>
+              <button id="cancel-card" type="button" class="text-button">Cancelar</button>
+            </div>
+            <div id="cards" class="cards-grid"></div>
+          </section>
+
+          <section class="panel log-panel">
+            <p class="panel-label">Última desgraça</p>
+            <p id="game-log">Os gatos entraram no tabuleiro.</p>
+          </section>
+        </aside>
+      </section>
+
+      <footer class="footer-note">
+        Vertical slice v0.1 · arte temporária · engine e regras já separadas do renderer.
+      </footer>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
