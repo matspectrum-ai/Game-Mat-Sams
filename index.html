@@ -3,14 +3,15 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#17120f" />
-    <meta name="description" content="CATastrophe — tactical cat chaos for two players." />
+    <meta name="theme-color" content="#17152a" />
+    <meta name="description" content="CATastrophe — xadrez tático, cartas e caos felino para dois jogadores." />
     <title>CATastrophe — Tactical Cat Chaos</title>
   </head>
   <body>
     <main class="shell">
       <div class="moon-glow" aria-hidden="true">☾</div>
       <div class="sky-stars" aria-hidden="true">✦　·　✧　·　✦　·　✧</div>
+
       <header class="masthead">
         <div>
           <p class="eyebrow">TACTICS · MAYHEM · TREATS</p>
@@ -21,70 +22,78 @@
       </header>
 
       <section class="arena" aria-label="CATastrophe game">
-        <div class="arena-ribbon"><span>☾ REINO DA LUA</span><b>CATastrophe</b><span>REINO DO SOL ☀</span></div>
-        <section class="game-layout">
-        <div class="board-frame">
-          <div id="game" aria-label="Tabuleiro do jogo"></div>
+        <div class="arena-ribbon">
+          <span>☾ REINO DA LUA</span>
+          <b>MAT × SAMS</b>
+          <span>REINO DO SOL ☀</span>
         </div>
 
-        <aside class="sidebar">
-          <section class="panel turn-panel">
-            <p class="panel-label">Turno</p>
-            <div class="turn-line">
-              <span id="turn-dot" class="turn-dot"></span>
-              <strong id="turn-player">Lua</strong>
-              <span id="turn-number">#1</span>
-            </div>
-            <p id="status" class="status" aria-live="polite">Escolha um gato para começar a confusão.</p>
-          </section>
+        <section class="game-layout">
+          <div class="board-frame">
+            <div id="game" aria-label="Tabuleiro do jogo"></div>
+          </div>
 
-          <section class="panel duel-panel">
-            <div class="fighter moon">
-              <div class="portrait"><img src="/assets/cats/moon-lord.svg" alt="" /></div>
-              <div>
-                <span>Mat · Os Lunáticos</span>
-                <strong><span id="moon-hp">8</span> ♥</strong>
+          <aside class="sidebar">
+            <section class="panel turn-panel">
+              <p class="panel-label">Turno</p>
+              <div class="turn-line">
+                <span id="turn-dot" class="turn-dot"></span>
+                <strong id="turn-player">Lua</strong>
+                <span id="turn-number">#1</span>
               </div>
-            </div>
-            <div class="versus">VS</div>
-            <div class="fighter sun">
-              <div class="portrait"><img src="/assets/cats/sun-lord.svg" alt="" /></div>
-              <div>
-                <span>Sams · Os Caóticos</span>
-                <strong><span id="sun-hp">8</span> ♥</strong>
+              <p id="status" class="status" aria-live="polite">Escolha um gato para começar a confusão.</p>
+            </section>
+
+            <section class="panel duel-panel">
+              <div class="fighter moon">
+                <div class="portrait"><img src="/assets/cats/moon-lord.svg" alt="" /></div>
+                <div>
+                  <span>Mat · Os Lunáticos</span>
+                  <strong><span id="moon-hp">8</span> ♥</strong>
+                </div>
               </div>
-            </div>
-          </section>
+              <div class="versus">VS</div>
+              <div class="fighter sun">
+                <div class="portrait"><img src="/assets/cats/sun-lord.svg" alt="" /></div>
+                <div>
+                  <span>Sams · Os Caóticos</span>
+                  <strong><span id="sun-hp">8</span> ♥</strong>
+                </div>
+              </div>
+            </section>
 
-          <section class="panel energy-panel">
-            <div>
-              <p class="panel-label">Energia felina</p>
-              <strong id="energy">🐾 🐾 🐾</strong>
-            </div>
-            <p>Uma ação por turno. Cartas também contam como ação.</p>
-          </section>
+            <section class="panel energy-panel">
+              <div>
+                <p class="panel-label">Energia felina</p>
+                <strong id="energy">🐾 🐾 🐾</strong>
+              </div>
+              <p>Cada movimento, ataque ou carta encerra o turno.</p>
+            </section>
 
-          <section class="panel cards-panel">
+            <section class="panel guide-panel">
+              <p class="panel-label">Comandos</p>
+              <p><b>Gato</b> → selecione. <b>Dourado</b> → mova. <b>Vermelho</b> → ataque. <b>Carta</b> → escolha e marque o alvo.</p>
+            </section>
+
+            <section class="panel log-panel">
+              <p class="panel-label">Última desgraça</p>
+              <p id="game-log">Os gatos entraram no tabuleiro.</p>
+            </section>
+          </aside>
+
+          <section class="panel cards-panel cards-dock">
             <div class="cards-heading">
               <div>
                 <p class="panel-label">Sua mão</p>
                 <h2>Cartas do caos</h2>
               </div>
-              <button id="cancel-card" type="button" class="text-button">Cancelar</button>
+              <div class="hand-actions">
+                <span class="hand-hint">uma carta = uma ação</span>
+                <button id="cancel-card" type="button" class="text-button">Cancelar seleção</button>
+              </div>
             </div>
             <div id="cards" class="cards-grid"></div>
           </section>
-
-          <section class="panel guide-panel">
-            <p class="panel-label">Como jogar</p>
-            <p><b>1.</b> Clique em um gato. <b>2.</b> Casas douradas são movimentos. <b>3.</b> Inimigos em vermelho podem ser atacados. <b>4.</b> Ou use uma carta e escolha o alvo.</p>
-          </section>
-
-          <section class="panel log-panel">
-            <p class="panel-label">Última desgraça</p>
-            <p id="game-log">Os gatos entraram no tabuleiro.</p>
-          </section>
-        </aside>
         </section>
       </section>
 
