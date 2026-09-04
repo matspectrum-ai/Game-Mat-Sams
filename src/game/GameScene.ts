@@ -18,6 +18,8 @@ const CARD_DESCRIPTIONS: Record<CardId, string> = {
   spilled_milk: 'Transforme uma casa em uma armadilha escorregadia.',
   yarnado: 'Varre uma fileira inteira com lã, dano e destruição.',
   orange_braincell: 'Cura, dano ou teleporte. O neurônio decide.',
+  cardboard_fort: 'Erga uma caixa de papelão que bloqueia movimento e magia.',
+  zoomies: 'Um gato não-Lorde dispara exatamente duas casas em linha reta.',
 };
 
 const CARD_ICONS: Record<CardId, string> = {
@@ -26,7 +28,19 @@ const CARD_ICONS: Record<CardId, string> = {
   spilled_milk: '🥛',
   yarnado: '🧶',
   orange_braincell: '🍊',
+  cardboard_fort: '📦',
+  zoomies: '⚡',
 };
+
+const ALL_CARDS: CardId[] = [
+  'fish_bomb',
+  'swap_places',
+  'spilled_milk',
+  'yarnado',
+  'orange_braincell',
+  'cardboard_fort',
+  'zoomies',
+];
 
 const UNIT_SHORT_NAMES: Record<UnitKind, string> = {
   lord: 'LORDE',
@@ -68,21 +82,24 @@ export class GameScene extends Phaser.Scene {
   private bindDomControls(): void {
     document.querySelector<HTMLButtonElement>('#restart')?.addEventListener('click', () => {
       this.gameState = createInitialState(Date.now() >>> 0);
-      this.selectedUnitId = null;
-      this.selectedCard = null;
-      this.swapFirstUnitId = null;
-      this.setStatus('Nova partida. Lua começa. Escolha um gato.');
+      this.clearSelection();
+      this.setStatus('Nova partida. Lua começa com 1 energia. Escolha um gato ou carta.');
       this.renderEverything();
       this.cameras.main.flash(220, 246, 223, 190, false);
       this.playTone(392, 0.08, 'sine', 0.025);
     });
 
     document.querySelector<HTMLButtonElement>('#cancel-card')?.addEventListener('click', () => {
-      this.selectedCard = null;
-      this.swapFirstUnitId = null;
-      this.setStatus('Carta cancelada. Escolha um gato ou outra carta.');
+      this.clearSelection();
+      this.setStatus('Seleção cancelada. Escolha um gato ou outra carta.');
       this.renderEverything();
     });
+  }
+
+  private clearSelection(): void {
+    this.selectedUnitId = null;
+    this.selectedCard = null;
+    this.swapFirstUnitId = null;
   }
 
   private renderEverything(): void {
@@ -101,11 +118,14 @@ export class GameScene extends Phaser.Scene {
   private renderBoard(): void {
     this.boardLayer?.destroy(true);
     this.boardLayer = this.add.container(0, 0);
-
     this.drawBackdrop();
 
-    const legalMoves = this.selectedUnitId ? getLegalMoves(this.gameState, this.selectedUnitId) : [];
-    const attackable = this.selectedUnitId ? getAttackableUnits(this.gameState, this.selectedUnitId) : [];
+    const legalMoves = !this.selectedCard && this.selectedUnitId
+      ? getLegalMoves(this.gameState, this.selectedUnitId)
+      : [];
+    const attackable = !this.selectedCard && this.selectedUnitId
+      ? getAttackableUnits(this.gameState, this.selectedUnitId)
+      : [];
 
     for (let y = 0; y < this.gameState.boardSize; y += 1) {
       for (let x = 0; x < this.gameState.boardSize; x += 1) {
@@ -122,6 +142,8 @@ export class GameScene extends Phaser.Scene {
           alpha = 1;
         } else if (tile?.kind === 'milk') {
           fill = 0xcbd3cc;
+        } else if (tile?.kind === 'box') {
+          fill = 0x8e643f;
         }
 
         const isLegal = legalMoves.some((move) => samePosition(move, position));
@@ -172,24 +194,15 @@ export class GameScene extends Phaser.Scene {
       .setRotation(0.004);
     const inner = this.add.rectangle(360, 360, 628, 628, 0x261b17, 1)
       .setStrokeStyle(2, 0xa27a5d, 0.45);
-
     this.boardLayer.add([boardShadow, frame, inner]);
 
     const doodles: Array<[number, number, string, number]> = [
-      [30, 30, '✦', -0.08],
-      [686, 34, '≋', 0.1],
-      [690, 686, '✧', 0.1],
-      [28, 686, '⌁', -0.15],
+      [30, 30, '✦', -0.08], [686, 34, '≋', 0.1], [690, 686, '✧', 0.1], [28, 686, '⌁', -0.15],
     ];
-
     for (const [x, y, glyph, rotation] of doodles) {
-      this.boardLayer.add(
-        this.add.text(x, y, glyph, {
-          fontFamily: 'Georgia, serif',
-          fontSize: '22px',
-          color: '#8e6a55',
-        }).setOrigin(0.5).setRotation(rotation).setAlpha(0.7),
-      );
+      this.boardLayer.add(this.add.text(x, y, glyph, {
+        fontFamily: 'Georgia, serif', fontSize: '22px', color: '#8e6a55',
+      }).setOrigin(0.5).setRotation(rotation).setAlpha(0.7));
     }
   }
 
@@ -207,19 +220,28 @@ export class GameScene extends Phaser.Scene {
     }
 
     if (kind === 'milk') {
-      const spill = this.add.ellipse(x, y + 3, 60, 34, 0xf4f0df, 0.7).setRotation((gridX - gridY) * 0.04);
-      const drop = this.add.circle(x + 24, y - 16, 5, 0xf4f0df, 0.6);
-      this.boardLayer.add([spill, drop]);
+      this.boardLayer.add([
+        this.add.ellipse(x, y + 3, 60, 34, 0xf4f0df, 0.7).setRotation((gridX - gridY) * 0.04),
+        this.add.circle(x + 24, y - 16, 5, 0xf4f0df, 0.6),
+      ]);
+      return;
+    }
+
+    if (kind === 'box') {
+      const boxShadow = this.add.rectangle(x + 3, y + 8, 58, 48, 0x271710, 0.35).setRotation(-0.02);
+      const box = this.add.rectangle(x, y + 2, 58, 48, 0xb57b43, 1).setStrokeStyle(3, 0x4c2c1d, 1).setRotation(0.018);
+      const tape = this.add.rectangle(x, y + 2, 9, 46, 0xd9b66d, 0.92).setRotation(0.018);
+      const slashA = this.add.line(x, y + 2, -28, -23, 28, 23, 0x6b4228, 0.7).setLineWidth(2);
+      const slashB = this.add.line(x, y + 2, 28, -23, -28, 23, 0x6b4228, 0.45).setLineWidth(2);
+      const paw = this.add.text(x + 17, y - 8, '🐾', { fontSize: '15px' }).setOrigin(0.5).setAlpha(0.72);
+      this.boardLayer.add([boxShadow, box, tape, slashA, slashB, paw]);
       return;
     }
 
     if ((gridX * 5 + gridY * 3) % 11 === 0) {
-      const scratch = this.add.text(x + 20, y + 19, '///', {
-        fontFamily: 'Georgia, serif',
-        fontSize: '11px',
-        color: '#4c382f',
-      }).setOrigin(0.5).setRotation(-0.3).setAlpha(0.35);
-      this.boardLayer.add(scratch);
+      this.boardLayer.add(this.add.text(x + 20, y + 19, '///', {
+        fontFamily: 'Georgia, serif', fontSize: '11px', color: '#4c382f',
+      }).setOrigin(0.5).setRotation(-0.3).setAlpha(0.35));
     }
   }
 
@@ -239,46 +261,42 @@ export class GameScene extends Phaser.Scene {
     const sprite = this.add.image(x, y + 2, textureKey)
       .setDisplaySize(unit.kind === 'kitten' ? 66 : 76, unit.kind === 'kitten' ? 66 : 76)
       .setInteractive({ useHandCursor: true });
-
     const hp = this.add.text(x + 27, y - 34, `${unit.hp}♥`, {
-      fontFamily: 'Georgia, serif',
-      fontSize: '10px',
-      color: '#ffd5c7',
-      backgroundColor: '#211613',
-      padding: { x: 4, y: 2 },
-      fontStyle: 'bold',
+      fontFamily: 'Georgia, serif', fontSize: '10px', color: '#ffd5c7', backgroundColor: '#211613',
+      padding: { x: 4, y: 2 }, fontStyle: 'bold',
     }).setOrigin(0.5);
-
     const rank = this.add.text(x, y + 38, UNIT_SHORT_NAMES[unit.kind], {
-      fontFamily: 'Georgia, serif',
-      fontSize: unit.kind === 'kitten' ? '7px' : '8px',
-      color: '#f7e7cf',
-      backgroundColor: '#211613',
-      padding: { x: 4, y: 2 },
-      fontStyle: 'bold',
+      fontFamily: 'Georgia, serif', fontSize: unit.kind === 'kitten' ? '7px' : '8px', color: '#f7e7cf',
+      backgroundColor: '#211613', padding: { x: 4, y: 2 }, fontStyle: 'bold',
     }).setOrigin(0.5);
 
     sprite.on('pointerdown', () => this.handleUnitClick(unit.id));
     this.boardLayer.add([shadow, glow, sprite, hp, rank]);
 
     if (isSelected) {
-      this.tweens.add({
-        targets: sprite,
-        y: y - 3,
-        angle: unit.owner === 'moon' ? -2 : 2,
-        duration: 420,
-        yoyo: true,
-        repeat: -1,
-        ease: 'Sine.InOut',
-      });
+      this.tweens.add({ targets: sprite, y: y - 3, angle: unit.owner === 'moon' ? -2 : 2, duration: 420, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
     }
   }
 
   private handleTileClick(position: Position): void {
     if (this.gameState.winner) return;
 
-    if (this.selectedCard === 'fish_bomb' || this.selectedCard === 'spilled_milk' || this.selectedCard === 'yarnado') {
+    if (
+      this.selectedCard === 'fish_bomb' ||
+      this.selectedCard === 'spilled_milk' ||
+      this.selectedCard === 'yarnado' ||
+      this.selectedCard === 'cardboard_fort'
+    ) {
       this.playCard({ target: position });
+      return;
+    }
+
+    if (this.selectedCard === 'zoomies') {
+      if (!this.selectedUnitId) {
+        this.setStatus('Zoomies: primeiro escolha um gato seu que não seja o Lorde.');
+        return;
+      }
+      this.playCard({ targetUnitId: this.selectedUnitId, target: position });
       return;
     }
 
@@ -288,10 +306,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     const result = applyCommand(this.gameState, {
-      type: 'move',
-      player: this.gameState.activePlayer,
-      unitId: this.selectedUnitId,
-      to: position,
+      type: 'move', player: this.gameState.activePlayer, unitId: this.selectedUnitId, to: position,
     });
     this.consumeResult(result.ok, result.state, result.error ?? 'Movimento inválido.', result.events);
   }
@@ -303,6 +318,21 @@ export class GameScene extends Phaser.Scene {
 
     if (this.selectedCard === 'orange_braincell') {
       this.playCard({ targetUnitId: unitId });
+      return;
+    }
+
+    if (this.selectedCard === 'zoomies') {
+      if (clicked.owner !== this.gameState.activePlayer) {
+        this.setStatus('Zoomies só funciona em um dos seus gatos.');
+        return;
+      }
+      if (clicked.kind === 'lord') {
+        this.setStatus('O Lorde é digno demais para Zoomies. Escolha outro gato.');
+        return;
+      }
+      this.selectedUnitId = clicked.id;
+      this.setStatus('Zoomies armado. Agora escolha uma casa exatamente 2 espaços acima, abaixo ou ao lado.');
+      this.renderBoard();
       return;
     }
 
@@ -321,9 +351,13 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
+    if (this.selectedCard) {
+      this.setStatus(this.cardInstruction(this.selectedCard));
+      return;
+    }
+
     if (clicked.owner === this.gameState.activePlayer) {
       this.selectedUnitId = clicked.id;
-      this.selectedCard = null;
       this.swapFirstUnitId = null;
       this.setStatus(`${this.prettyUnit(clicked)} selecionado. Dourado = mover. Vermelho = atacar.`);
       this.renderEverything();
@@ -337,10 +371,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     const result = applyCommand(this.gameState, {
-      type: 'attack',
-      player: this.gameState.activePlayer,
-      unitId: this.selectedUnitId,
-      targetUnitId: clicked.id,
+      type: 'attack', player: this.gameState.activePlayer, unitId: this.selectedUnitId, targetUnitId: clicked.id,
     });
     this.consumeResult(result.ok, result.state, result.error ?? 'Ataque inválido.', result.events);
   }
@@ -348,20 +379,12 @@ export class GameScene extends Phaser.Scene {
   private playCard(targets: { target?: Position; targetUnitId?: string; secondUnitId?: string }): void {
     if (!this.selectedCard) return;
     const result = applyCommand(this.gameState, {
-      type: 'play_card',
-      player: this.gameState.activePlayer,
-      card: this.selectedCard,
-      ...targets,
+      type: 'play_card', player: this.gameState.activePlayer, card: this.selectedCard, ...targets,
     });
     this.consumeResult(result.ok, result.state, result.error ?? 'Não foi possível jogar essa carta.', result.events);
   }
 
-  private consumeResult(
-    ok: boolean,
-    nextState: GameState,
-    error: string,
-    events: GameEvent[] = [],
-  ): void {
+  private consumeResult(ok: boolean, nextState: GameState, error: string, events: GameEvent[] = []): void {
     if (!ok) {
       this.setStatus(error);
       this.cameras.main.shake(90, 0.002);
@@ -371,13 +394,11 @@ export class GameScene extends Phaser.Scene {
 
     const previousState = this.gameState;
     this.gameState = nextState;
-    this.selectedUnitId = null;
-    this.selectedCard = null;
-    this.swapFirstUnitId = null;
+    this.clearSelection();
     this.setStatus(
       this.gameState.winner
         ? `${this.playerName(this.gameState.winner)} venceu a partida.`
-        : `Agora é a vez de ${this.playerName(this.gameState.activePlayer)}.`,
+        : `Vez de ${this.playerName(this.gameState.activePlayer)} · ${this.gameState.players[this.gameState.activePlayer].energy} energia.`,
     );
     this.renderEverything();
     this.playFeedback(events, previousState);
@@ -415,21 +436,9 @@ export class GameScene extends Phaser.Scene {
   private animateMove(from: Position, to: Position): void {
     const start = this.boardPoint(from);
     const end = this.boardPoint(to);
-    const trail = this.add.text(start.x, start.y, '🐾', {
-      fontSize: '22px',
-      color: '#f3d68d',
-    }).setOrigin(0.5).setAlpha(0.75).setDepth(40);
-
-    this.tweens.add({
-      targets: trail,
-      x: end.x,
-      y: end.y,
-      alpha: 0,
-      scale: 1.35,
-      duration: 280,
-      ease: 'Cubic.Out',
-      onComplete: () => trail.destroy(),
-    });
+    const paw = this.add.text(start.x, start.y, '🐾', { fontSize: '22px', color: '#f3d68d' })
+      .setOrigin(0.5).setAlpha(0.75).setDepth(40);
+    this.tweens.add({ targets: paw, x: end.x, y: end.y, alpha: 0, scale: 1.35, duration: 280, ease: 'Cubic.Out', onComplete: () => paw.destroy() });
   }
 
   private animateDamage(unitId: string, amount: number, previousState: GameState): void {
@@ -441,80 +450,52 @@ export class GameScene extends Phaser.Scene {
     const slashA = this.add.line(point.x, point.y, -25, -18, 25, 18, 0xf06b5e, 0.95).setLineWidth(5).setDepth(42);
     const slashB = this.add.line(point.x, point.y, -18, 24, 18, -24, 0xffc0a6, 0.8).setLineWidth(3).setDepth(42);
     const number = this.add.text(point.x, point.y - 18, `-${amount}`, {
-      fontFamily: 'Georgia, serif',
-      fontSize: '24px',
-      fontStyle: 'bold',
-      color: '#ffd0bd',
-      stroke: '#321714',
-      strokeThickness: 5,
+      fontFamily: 'Georgia, serif', fontSize: '24px', fontStyle: 'bold', color: '#ffd0bd', stroke: '#321714', strokeThickness: 5,
     }).setOrigin(0.5).setDepth(43);
-
     this.tweens.add({ targets: [slashA, slashB], alpha: 0, scale: 1.4, duration: 250, onComplete: () => { slashA.destroy(); slashB.destroy(); } });
     this.tweens.add({ targets: number, y: point.y - 55, alpha: 0, duration: 520, ease: 'Cubic.Out', onComplete: () => number.destroy() });
   }
 
-  private animateTileChange(position: Position, kind: 'floor' | 'destroyed' | 'milk'): void {
+  private animateTileChange(position: Position, kind: 'floor' | 'destroyed' | 'milk' | 'box'): void {
     const point = this.boardPoint(position);
-
     if (kind === 'destroyed') {
       const ring = this.add.circle(point.x, point.y, 18, 0xff9b50, 0.18).setStrokeStyle(5, 0xffbf6c, 0.9).setDepth(39);
       const core = this.add.circle(point.x, point.y, 8, 0xffe2a1, 0.9).setDepth(40);
-      this.tweens.add({
-        targets: ring,
-        radius: 48,
-        alpha: 0,
-        duration: 360,
-        ease: 'Quad.Out',
-        onComplete: () => ring.destroy(),
-      });
+      this.tweens.add({ targets: ring, scale: 2.8, alpha: 0, duration: 360, ease: 'Quad.Out', onComplete: () => ring.destroy() });
       this.tweens.add({ targets: core, scale: 4, alpha: 0, duration: 210, onComplete: () => core.destroy() });
       return;
     }
-
     if (kind === 'milk') {
       const splash = this.add.text(point.x, point.y, '🥛', { fontSize: '32px' }).setOrigin(0.5).setDepth(40);
       this.tweens.add({ targets: splash, y: point.y - 28, scale: 1.25, alpha: 0, duration: 460, onComplete: () => splash.destroy() });
+      return;
+    }
+    if (kind === 'box') {
+      const pop = this.add.text(point.x, point.y, '📦', { fontSize: '38px' }).setOrigin(0.5).setDepth(40).setScale(0.2);
+      this.tweens.add({ targets: pop, scale: 1.4, angle: 7, duration: 180, ease: 'Back.Out', yoyo: true, hold: 120, onComplete: () => pop.destroy() });
     }
   }
 
   private animateSwap(firstUnitId: string, secondUnitId: string): void {
-    const first = this.gameState.units.find((unit) => unit.id === firstUnitId);
-    const second = this.gameState.units.find((unit) => unit.id === secondUnitId);
-    if (!first || !second) return;
-
-    for (const unit of [first, second]) {
+    for (const unit of [
+      this.gameState.units.find((candidate) => candidate.id === firstUnitId),
+      this.gameState.units.find((candidate) => candidate.id === secondUnitId),
+    ]) {
+      if (!unit) continue;
       const point = this.boardPoint(unit.position);
-      const sparkle = this.add.text(point.x, point.y, '✦', {
-        fontFamily: 'Georgia, serif', fontSize: '34px', color: '#dbb9ff',
-      }).setOrigin(0.5).setDepth(41);
+      const sparkle = this.add.text(point.x, point.y, '✦', { fontFamily: 'Georgia, serif', fontSize: '34px', color: '#dbb9ff' })
+        .setOrigin(0.5).setDepth(41);
       this.tweens.add({ targets: sparkle, angle: 180, scale: 1.7, alpha: 0, duration: 520, onComplete: () => sparkle.destroy() });
     }
   }
 
   private showCardBanner(card: CardId): void {
-    const panel = this.add.rectangle(360, 90, 360, 72, 0x1d1620, 0.94)
-      .setStrokeStyle(2, 0xd5ae62, 0.75)
-      .setDepth(60)
-      .setScale(0.84)
-      .setAlpha(0);
-    const icon = this.add.text(220, 90, CARD_ICONS[card], { fontSize: '34px' }).setOrigin(0.5).setDepth(61).setAlpha(0);
-    const label = this.add.text(385, 89, CARD_NAMES[card], {
-      fontFamily: 'Georgia, serif',
-      fontSize: '22px',
-      fontStyle: 'bold',
-      color: '#f4dbac',
-    }).setOrigin(0.5).setDepth(61).setAlpha(0);
-
+    const panel = this.add.rectangle(360, 90, 390, 72, 0x1d1620, 0.94).setStrokeStyle(2, 0xd5ae62, 0.75).setDepth(60).setScale(0.84).setAlpha(0);
+    const icon = this.add.text(210, 90, CARD_ICONS[card], { fontSize: '34px' }).setOrigin(0.5).setDepth(61).setAlpha(0);
+    const label = this.add.text(390, 89, CARD_NAMES[card], { fontFamily: 'Georgia, serif', fontSize: '21px', fontStyle: 'bold', color: '#f4dbac' })
+      .setOrigin(0.5).setDepth(61).setAlpha(0);
     this.tweens.add({ targets: [panel, icon, label], alpha: 1, scale: 1, duration: 150, ease: 'Back.Out' });
-    this.time.delayedCall(700, () => {
-      this.tweens.add({
-        targets: [panel, icon, label],
-        y: '-=18',
-        alpha: 0,
-        duration: 250,
-        onComplete: () => { panel.destroy(); icon.destroy(); label.destroy(); },
-      });
-    });
+    this.time.delayedCall(700, () => this.tweens.add({ targets: [panel, icon, label], y: '-=18', alpha: 0, duration: 250, onComplete: () => { panel.destroy(); icon.destroy(); label.destroy(); } }));
   }
 
   private showVictory(winner: PlayerId): void {
@@ -526,20 +507,11 @@ export class GameScene extends Phaser.Scene {
     const veil = this.add.rectangle(360, 360, 720, 720, 0x100c12, 0.72).setDepth(80).setAlpha(0);
     const crown = this.add.text(360, 255, '♛', { fontSize: '70px', color: '#f1c968' }).setOrigin(0.5).setDepth(81).setAlpha(0);
     const title = this.add.text(360, 345, `${this.playerName(winner).toUpperCase()} VENCEU`, {
-      fontFamily: 'Georgia, serif',
-      fontSize: '42px',
-      fontStyle: 'bold',
-      color: '#f7dfb0',
-      stroke: '#34201d',
-      strokeThickness: 7,
+      fontFamily: 'Georgia, serif', fontSize: '42px', fontStyle: 'bold', color: '#f7dfb0', stroke: '#34201d', strokeThickness: 7,
     }).setOrigin(0.5).setDepth(81).setAlpha(0);
     const subtitle = this.add.text(360, 405, winner === 'moon' ? 'Os Lunáticos dominaram a mesa.' : 'Os Caóticos dominaram a mesa.', {
-      fontFamily: 'Georgia, serif',
-      fontSize: '18px',
-      fontStyle: 'italic',
-      color: '#d5c1aa',
+      fontFamily: 'Georgia, serif', fontSize: '18px', fontStyle: 'italic', color: '#d5c1aa',
     }).setOrigin(0.5).setDepth(81).setAlpha(0);
-
     this.tweens.add({ targets: [veil, crown, title, subtitle], alpha: 1, duration: 380, ease: 'Quad.Out' });
   }
 
@@ -559,7 +531,7 @@ export class GameScene extends Phaser.Scene {
       oscillator.start();
       oscillator.stop(context.currentTime + duration);
     } catch {
-      // Audio is ornamental. Gameplay must never depend on browser audio support.
+      // Audio feedback is non-critical.
     }
   }
 
@@ -576,16 +548,10 @@ export class GameScene extends Phaser.Scene {
 
     if (moonHp) moonHp.textContent = String(this.gameState.players.moon.hp);
     if (sunHp) sunHp.textContent = String(this.gameState.players.sun.hp);
-    if (turnPlayer) {
-      turnPlayer.textContent = this.gameState.winner
-        ? `${this.playerName(this.gameState.winner)} venceu`
-        : this.playerName(active);
-    }
+    if (turnPlayer) turnPlayer.textContent = this.gameState.winner ? `${this.playerName(this.gameState.winner)} venceu` : this.playerName(active);
     if (turnNumber) turnNumber.textContent = `#${this.gameState.turn}`;
     if (turnDot) turnDot.style.background = active === 'moon' ? '#9b79bb' : '#d88a4d';
-    if (energy) {
-      energy.textContent = `${'🐾 '.repeat(player.energy)}${'· '.repeat(Math.max(0, player.maxEnergy - player.energy))}`.trim();
-    }
+    if (energy) energy.textContent = `${'🐾 '.repeat(player.energy)}${'· '.repeat(Math.max(0, player.maxEnergy - player.energy))}`.trim();
     if (log) log.textContent = this.gameState.log[0] ?? 'Miau.';
   }
 
@@ -595,9 +561,7 @@ export class GameScene extends Phaser.Scene {
     container.replaceChildren();
 
     const player = this.gameState.players[this.gameState.activePlayer];
-    const cards: CardId[] = ['fish_bomb', 'swap_places', 'spilled_milk', 'yarnado', 'orange_braincell'];
-
-    for (const card of cards) {
+    for (const card of ALL_CARDS) {
       const button = document.createElement('button');
       const available = player.hand.includes(card);
       button.type = 'button';
@@ -608,7 +572,6 @@ export class GameScene extends Phaser.Scene {
         '<span class="card-grain" aria-hidden="true"></span>',
         `<img class="card-art" src="/assets/cards/${card}.svg" alt="" aria-hidden="true" />`,
         `<span class="card-cost">${CARD_COSTS[card]} <span>🐾</span></span>`,
-        `<span class="card-icon" aria-hidden="true">${CARD_ICONS[card]}</span>`,
         `<strong>${CARD_NAMES[card]}</strong>`,
         `<small>${available ? CARD_DESCRIPTIONS[card] : 'Carta já usada nesta partida.'}</small>`,
       ].join('');
@@ -630,13 +593,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private prettyUnit(unit: Unit): string {
-    const labels: Record<UnitKind, string> = {
-      lord: 'Lorde Gato',
-      knight: 'Cavaleiro-Gato',
-      witch: 'Gata Bruxa',
-      kitten: 'Filhote',
-    };
-    return labels[unit.kind];
+    return ({ lord: 'Lorde Gato', knight: 'Cavaleiro-Gato', witch: 'Gata Bruxa', kitten: 'Filhote' } as Record<UnitKind, string>)[unit.kind];
   }
 
   private playerName(player: PlayerId): string {
@@ -645,9 +602,11 @@ export class GameScene extends Phaser.Scene {
 
   private cardInstruction(card: CardId): string {
     if (card === 'fish_bomb') return 'Fish Bomb: escolha a casa central da explosão 3×3.';
-    if (card === 'spilled_milk') return 'Spilled Milk: escolha uma casa para cobrir de leite.';
+    if (card === 'spilled_milk') return 'Spilled Milk: escolha uma casa vazia para cobrir de leite.';
     if (card === 'yarnado') return 'Yarnado: clique em qualquer casa da fileira que será devastada.';
     if (card === 'swap_places') return 'Swap Places: escolha dois gatos que não sejam Lordes.';
+    if (card === 'cardboard_fort') return 'Cardboard Fort: escolha uma casa vazia para erguer cobertura.';
+    if (card === 'zoomies') return 'Zoomies: escolha um gato seu que não seja Lorde e depois um destino 2 casas em linha reta.';
     return 'One Orange Braincell: escolha um gato seu e aceite as consequências.';
   }
 }
