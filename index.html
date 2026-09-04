@@ -9,6 +9,8 @@
   </head>
   <body>
     <main class="shell">
+      <div class="moon-glow" aria-hidden="true">☾</div>
+      <div class="sky-stars" aria-hidden="true">✦　·　✧　·　✦　·　✧</div>
       <header class="masthead">
         <div>
           <p class="eyebrow">TACTICS · MAYHEM · TREATS</p>
@@ -18,7 +20,9 @@
         <button id="restart" class="restart" type="button">Nova partida</button>
       </header>
 
-      <section class="game-layout" aria-label="CATastrophe game">
+      <section class="arena" aria-label="CATastrophe game">
+        <div class="arena-ribbon"><span>☾ REINO DA LUA</span><b>CATastrophe</b><span>REINO DO SOL ☀</span></div>
+        <section class="game-layout">
         <div class="board-frame">
           <div id="game" aria-label="Tabuleiro do jogo"></div>
         </div>
@@ -76,10 +80,11 @@
             <p id="game-log">Os gatos entraram no tabuleiro.</p>
           </section>
         </aside>
+        </section>
       </section>
 
       <footer class="footer-note">
-        Vertical slice v0.1 · arte temporária · engine e regras já separadas do renderer.
+        Vertical slice artístico · o tabuleiro muda, quebra e guarda as cicatrizes da batalha.
       </footer>
     </main>
     <script type="module" src="/src/main.ts"></script>
