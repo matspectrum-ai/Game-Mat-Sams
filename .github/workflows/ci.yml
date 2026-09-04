@@ -14,6 +14,21 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm install
+      - name: Install dependencies
+        id: install
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          npm install 2>&1 | tee npm-install.log
+      - name: Upload install log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-install-log
+          path: npm-install.log
+      - name: Fail if install failed
+        if: steps.install.outcome == 'failure'
+        run: exit 1
       - run: npm test
       - run: npm run build
