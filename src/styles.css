@@ -568,3 +568,18 @@ body::after {
 }
 .card-button .card-icon { display:none; }
 .card-button strong { max-width:100%; }
+
+.fighter .portrait img {
+  width: 62px;
+  height: 62px;
+  object-fit: contain;
+  transform: translateY(4px);
+  filter: drop-shadow(0 4px 5px rgba(0,0,0,.35));
+}
+.guide-panel p {
+  margin: 8px 0 0;
+  color: #c9bca9;
+  line-height: 1.45;
+  font-size: .82rem;
+}
+.guide-panel b { color:#efd6a7; }
