@@ -14,9 +14,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Pin npm
-        run: npm install --global npm@11.6.0
+      - name: Install pnpm
+        run: npm install --global pnpm@10.34.5
       - name: Install dependencies
-        run: npm install
-      - run: npm test
-      - run: npm run build
+        run: pnpm install
+      - run: pnpm test
+      - run: pnpm run build
