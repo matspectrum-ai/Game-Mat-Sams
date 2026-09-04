@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import './styles.css';
 import './intro.css';
+import './v02.css';
 import { GameScene } from './game/GameScene';
 
 new Phaser.Game({
