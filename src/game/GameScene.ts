@@ -45,6 +45,7 @@ export class GameScene extends Phaser.Scene {
   private selectedCard: CardId | null = null;
   private swapFirstUnitId: string | null = null;
   private boardLayer?: Phaser.GameObjects.Container;
+  private audioContext?: AudioContext;
 
   constructor() {
     super('CATastrophe');
@@ -73,6 +74,7 @@ export class GameScene extends Phaser.Scene {
       this.setStatus('Nova partida. Lua começa. Escolha um gato.');
       this.renderEverything();
       this.cameras.main.flash(220, 246, 223, 190, false);
+      this.playTone(392, 0.08, 'sine', 0.025);
     });
 
     document.querySelector<HTMLButtonElement>('#cancel-card')?.addEventListener('click', () => {
@@ -89,6 +91,13 @@ export class GameScene extends Phaser.Scene {
     this.renderCards();
   }
 
+  private boardPoint(position: Position): Phaser.Math.Vector2 {
+    return new Phaser.Math.Vector2(
+      BOARD_OFFSET + position.x * TILE_SIZE + TILE_SIZE / 2,
+      BOARD_OFFSET + position.y * TILE_SIZE + TILE_SIZE / 2,
+    );
+  }
+
   private renderBoard(): void {
     this.boardLayer?.destroy(true);
     this.boardLayer = this.add.container(0, 0);
@@ -103,8 +112,7 @@ export class GameScene extends Phaser.Scene {
         const position = { x, y };
         const tile = this.gameState.tiles.find((candidate) => samePosition(candidate.position, position));
         const occupant = this.gameState.units.find((candidate) => samePosition(candidate.position, position));
-        const centerX = BOARD_OFFSET + x * TILE_SIZE + TILE_SIZE / 2;
-        const centerY = BOARD_OFFSET + y * TILE_SIZE + TILE_SIZE / 2;
+        const center = this.boardPoint(position);
         const lightSquare = (x + y) % 2 === 0;
 
         let fill = lightSquare ? 0xe0c491 : 0x71556b;
@@ -119,9 +127,9 @@ export class GameScene extends Phaser.Scene {
         const isLegal = legalMoves.some((move) => samePosition(move, position));
         const isAttackable = occupant ? attackable.some((unit) => unit.id === occupant.id) : false;
 
-        const shadow = this.add.rectangle(centerX + 2, centerY + 3, TILE_SIZE - 6, TILE_SIZE - 6, 0x100c0a, 0.25);
+        const shadow = this.add.rectangle(center.x + 2, center.y + 3, TILE_SIZE - 6, TILE_SIZE - 6, 0x100c0a, 0.25);
         const square = this.add
-          .rectangle(centerX, centerY, TILE_SIZE - 7, TILE_SIZE - 7, fill, alpha)
+          .rectangle(center.x, center.y, TILE_SIZE - 7, TILE_SIZE - 7, fill, alpha)
           .setStrokeStyle(
             isLegal ? 4 : isAttackable ? 4 : 2,
             isLegal ? 0xf0d66d : isAttackable ? 0xdf5548 : 0x4a362e,
@@ -133,13 +141,13 @@ export class GameScene extends Phaser.Scene {
         this.boardLayer.add([shadow, square]);
 
         if (isLegal) {
-          const marker = this.add.circle(centerX, centerY, 9, 0xf0d66d, 0.7).setStrokeStyle(2, 0x5a4227, 0.8);
+          const marker = this.add.circle(center.x, center.y, 9, 0xf0d66d, 0.68).setStrokeStyle(2, 0x5a4227, 0.8);
           this.boardLayer.add(marker);
+          this.tweens.add({ targets: marker, scale: 1.28, alpha: 0.35, duration: 680, yoyo: true, repeat: -1 });
         }
 
-        this.drawTileDetail(tile?.kind ?? 'floor', centerX, centerY, x, y);
-
-        if (occupant) this.renderUnit(occupant, centerX, centerY, isAttackable);
+        this.drawTileDetail(tile?.kind ?? 'floor', center.x, center.y, x, y);
+        if (occupant) this.renderUnit(occupant, center.x, center.y, isAttackable);
       }
     }
 
@@ -266,46 +274,6 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  private addClassAccessory(
-    unit: Unit,
-    x: number,
-    y: number,
-    dark: number,
-    outline: number,
-    parts: Phaser.GameObjects.GameObject[],
-  ): void {
-    if (unit.kind === 'lord') {
-      const crown = this.add.triangle(x, y - 46, 0, 18, 13, 0, 26, 18, 0xd5ae55, 1)
-        .setStrokeStyle(2, outline, 1);
-      const jewel = this.add.circle(x, y - 43, 3, unit.owner === 'moon' ? 0x7e69c8 : 0xd85e43, 1);
-      parts.push(crown, jewel);
-      return;
-    }
-
-    if (unit.kind === 'knight') {
-      const scarf = this.add.rectangle(x, y + 16, 42, 8, 0x8d3f3f, 1).setRotation(-0.08);
-      const plume = this.add.line(x + 19, y - 36, 0, 0, 8, -13, 0xd7bc71, 1).setLineWidth(4);
-      parts.push(scarf, plume);
-      return;
-    }
-
-    if (unit.kind === 'witch') {
-      const brim = this.add.rectangle(x, y - 40, 44, 7, dark, 1).setRotation(-0.08);
-      const hat = this.add.triangle(x - 1, y - 54, 0, 25, 18, 0, 34, 26, dark, 1)
-        .setStrokeStyle(2, outline, 1)
-        .setRotation(-0.05);
-      const star = this.add.text(x + 1, y - 50, '✦', {
-        fontSize: '11px',
-        color: '#f2d46e',
-      }).setOrigin(0.5);
-      parts.push(brim, hat, star);
-      return;
-    }
-
-    const tuft = this.add.triangle(x, y - 35, 0, 10, 7, 0, 14, 10, dark, 1).setRotation(0.15);
-    parts.push(tuft);
-  }
-
   private handleTileClick(position: Position): void {
     if (this.gameState.winner) return;
 
@@ -359,6 +327,7 @@ export class GameScene extends Phaser.Scene {
       this.swapFirstUnitId = null;
       this.setStatus(`${this.prettyUnit(clicked)} selecionado. Dourado = mover. Vermelho = atacar.`);
       this.renderEverything();
+      this.playTone(520, 0.035, 'sine', 0.015);
       return;
     }
 
@@ -396,9 +365,11 @@ export class GameScene extends Phaser.Scene {
     if (!ok) {
       this.setStatus(error);
       this.cameras.main.shake(90, 0.002);
+      this.playTone(120, 0.05, 'square', 0.015);
       return;
     }
 
+    const previousState = this.gameState;
     this.gameState = nextState;
     this.selectedUnitId = null;
     this.selectedCard = null;
@@ -409,22 +380,186 @@ export class GameScene extends Phaser.Scene {
         : `Agora é a vez de ${this.playerName(this.gameState.activePlayer)}.`,
     );
     this.renderEverything();
-    this.playFeedback(events);
+    this.playFeedback(events, previousState);
   }
 
-  private playFeedback(events: GameEvent[]): void {
+  private playFeedback(events: GameEvent[], previousState: GameState): void {
+    const cardEvent = events.find((event): event is Extract<GameEvent, { type: 'card_played' }> => event.type === 'card_played');
+    if (cardEvent) this.showCardBanner(cardEvent.card);
+
+    for (const event of events) {
+      if (event.type === 'unit_moved') this.animateMove(event.from, event.to);
+      if (event.type === 'unit_damaged') this.animateDamage(event.unitId, event.amount, previousState);
+      if (event.type === 'tile_changed') this.animateTileChange(event.position, event.kind);
+      if (event.type === 'units_swapped') this.animateSwap(event.firstUnitId, event.secondUnitId);
+    }
+
     const hasDestruction = events.some((event) => event.type === 'tile_changed' && event.kind === 'destroyed');
     const hasDamage = events.some((event) => event.type === 'unit_damaged');
-    const hasCard = events.some((event) => event.type === 'card_played');
-    const gameOver = events.some((event) => event.type === 'game_over');
+    const gameOver = events.find((event): event is Extract<GameEvent, { type: 'game_over' }> => event.type === 'game_over');
 
-    if (hasDestruction) this.cameras.main.shake(220, 0.008);
-    else if (hasDamage) this.cameras.main.shake(130, 0.004);
+    if (hasDestruction) {
+      this.cameras.main.shake(220, 0.008);
+      this.playTone(82, 0.12, 'sawtooth', 0.035);
+    } else if (hasDamage) {
+      this.cameras.main.shake(120, 0.004);
+      this.playTone(155, 0.07, 'square', 0.025);
+    } else {
+      this.playTone(330, 0.045, 'triangle', 0.018);
+    }
 
-    if (hasCard) this.cameras.main.flash(130, 247, 221, 149, false);
-    if (gameOver) {
-      this.cameras.main.flash(500, 255, 214, 105, false);
-      this.cameras.main.shake(380, 0.009);
+    if (cardEvent) this.cameras.main.flash(130, 247, 221, 149, false);
+    if (gameOver) this.showVictory(gameOver.winner);
+  }
+
+  private animateMove(from: Position, to: Position): void {
+    const start = this.boardPoint(from);
+    const end = this.boardPoint(to);
+    const trail = this.add.text(start.x, start.y, '🐾', {
+      fontSize: '22px',
+      color: '#f3d68d',
+    }).setOrigin(0.5).setAlpha(0.75).setDepth(40);
+
+    this.tweens.add({
+      targets: trail,
+      x: end.x,
+      y: end.y,
+      alpha: 0,
+      scale: 1.35,
+      duration: 280,
+      ease: 'Cubic.Out',
+      onComplete: () => trail.destroy(),
+    });
+  }
+
+  private animateDamage(unitId: string, amount: number, previousState: GameState): void {
+    const unit = this.gameState.units.find((candidate) => candidate.id === unitId)
+      ?? previousState.units.find((candidate) => candidate.id === unitId);
+    if (!unit) return;
+
+    const point = this.boardPoint(unit.position);
+    const slashA = this.add.line(point.x, point.y, -25, -18, 25, 18, 0xf06b5e, 0.95).setLineWidth(5).setDepth(42);
+    const slashB = this.add.line(point.x, point.y, -18, 24, 18, -24, 0xffc0a6, 0.8).setLineWidth(3).setDepth(42);
+    const number = this.add.text(point.x, point.y - 18, `-${amount}`, {
+      fontFamily: 'Georgia, serif',
+      fontSize: '24px',
+      fontStyle: 'bold',
+      color: '#ffd0bd',
+      stroke: '#321714',
+      strokeThickness: 5,
+    }).setOrigin(0.5).setDepth(43);
+
+    this.tweens.add({ targets: [slashA, slashB], alpha: 0, scale: 1.4, duration: 250, onComplete: () => { slashA.destroy(); slashB.destroy(); } });
+    this.tweens.add({ targets: number, y: point.y - 55, alpha: 0, duration: 520, ease: 'Cubic.Out', onComplete: () => number.destroy() });
+  }
+
+  private animateTileChange(position: Position, kind: 'floor' | 'destroyed' | 'milk'): void {
+    const point = this.boardPoint(position);
+
+    if (kind === 'destroyed') {
+      const ring = this.add.circle(point.x, point.y, 18, 0xff9b50, 0.18).setStrokeStyle(5, 0xffbf6c, 0.9).setDepth(39);
+      const core = this.add.circle(point.x, point.y, 8, 0xffe2a1, 0.9).setDepth(40);
+      this.tweens.add({
+        targets: ring,
+        radius: 48,
+        alpha: 0,
+        duration: 360,
+        ease: 'Quad.Out',
+        onComplete: () => ring.destroy(),
+      });
+      this.tweens.add({ targets: core, scale: 4, alpha: 0, duration: 210, onComplete: () => core.destroy() });
+      return;
+    }
+
+    if (kind === 'milk') {
+      const splash = this.add.text(point.x, point.y, '🥛', { fontSize: '32px' }).setOrigin(0.5).setDepth(40);
+      this.tweens.add({ targets: splash, y: point.y - 28, scale: 1.25, alpha: 0, duration: 460, onComplete: () => splash.destroy() });
+    }
+  }
+
+  private animateSwap(firstUnitId: string, secondUnitId: string): void {
+    const first = this.gameState.units.find((unit) => unit.id === firstUnitId);
+    const second = this.gameState.units.find((unit) => unit.id === secondUnitId);
+    if (!first || !second) return;
+
+    for (const unit of [first, second]) {
+      const point = this.boardPoint(unit.position);
+      const sparkle = this.add.text(point.x, point.y, '✦', {
+        fontFamily: 'Georgia, serif', fontSize: '34px', color: '#dbb9ff',
+      }).setOrigin(0.5).setDepth(41);
+      this.tweens.add({ targets: sparkle, angle: 180, scale: 1.7, alpha: 0, duration: 520, onComplete: () => sparkle.destroy() });
+    }
+  }
+
+  private showCardBanner(card: CardId): void {
+    const panel = this.add.rectangle(360, 90, 360, 72, 0x1d1620, 0.94)
+      .setStrokeStyle(2, 0xd5ae62, 0.75)
+      .setDepth(60)
+      .setScale(0.84)
+      .setAlpha(0);
+    const icon = this.add.text(220, 90, CARD_ICONS[card], { fontSize: '34px' }).setOrigin(0.5).setDepth(61).setAlpha(0);
+    const label = this.add.text(385, 89, CARD_NAMES[card], {
+      fontFamily: 'Georgia, serif',
+      fontSize: '22px',
+      fontStyle: 'bold',
+      color: '#f4dbac',
+    }).setOrigin(0.5).setDepth(61).setAlpha(0);
+
+    this.tweens.add({ targets: [panel, icon, label], alpha: 1, scale: 1, duration: 150, ease: 'Back.Out' });
+    this.time.delayedCall(700, () => {
+      this.tweens.add({
+        targets: [panel, icon, label],
+        y: '-=18',
+        alpha: 0,
+        duration: 250,
+        onComplete: () => { panel.destroy(); icon.destroy(); label.destroy(); },
+      });
+    });
+  }
+
+  private showVictory(winner: PlayerId): void {
+    this.cameras.main.flash(520, 255, 214, 105, false);
+    this.cameras.main.shake(380, 0.009);
+    this.playTone(winner === 'moon' ? 440 : 523, 0.18, 'triangle', 0.04);
+    this.time.delayedCall(120, () => this.playTone(winner === 'moon' ? 660 : 784, 0.22, 'triangle', 0.035));
+
+    const veil = this.add.rectangle(360, 360, 720, 720, 0x100c12, 0.72).setDepth(80).setAlpha(0);
+    const crown = this.add.text(360, 255, '♛', { fontSize: '70px', color: '#f1c968' }).setOrigin(0.5).setDepth(81).setAlpha(0);
+    const title = this.add.text(360, 345, `${this.playerName(winner).toUpperCase()} VENCEU`, {
+      fontFamily: 'Georgia, serif',
+      fontSize: '42px',
+      fontStyle: 'bold',
+      color: '#f7dfb0',
+      stroke: '#34201d',
+      strokeThickness: 7,
+    }).setOrigin(0.5).setDepth(81).setAlpha(0);
+    const subtitle = this.add.text(360, 405, winner === 'moon' ? 'Os Lunáticos dominaram a mesa.' : 'Os Caóticos dominaram a mesa.', {
+      fontFamily: 'Georgia, serif',
+      fontSize: '18px',
+      fontStyle: 'italic',
+      color: '#d5c1aa',
+    }).setOrigin(0.5).setDepth(81).setAlpha(0);
+
+    this.tweens.add({ targets: [veil, crown, title, subtitle], alpha: 1, duration: 380, ease: 'Quad.Out' });
+  }
+
+  private playTone(frequency: number, duration: number, type: OscillatorType, volume: number): void {
+    try {
+      this.audioContext ??= new AudioContext();
+      const context = this.audioContext;
+      if (context.state === 'suspended') void context.resume();
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+      oscillator.type = type;
+      oscillator.frequency.setValueAtTime(frequency, context.currentTime);
+      gain.gain.setValueAtTime(volume, context.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + duration);
+      oscillator.connect(gain);
+      gain.connect(context.destination);
+      oscillator.start();
+      oscillator.stop(context.currentTime + duration);
+    } catch {
+      // Audio is ornamental. Gameplay must never depend on browser audio support.
     }
   }
 
@@ -483,6 +618,7 @@ export class GameScene extends Phaser.Scene {
         this.swapFirstUnitId = null;
         this.setStatus(this.cardInstruction(card));
         this.renderEverything();
+        this.playTone(620, 0.04, 'sine', 0.015);
       });
       container.appendChild(button);
     }
