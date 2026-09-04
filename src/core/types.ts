@@ -65,7 +65,6 @@ export type GameEvent =
 export type GameCommand =
   | { type: 'move'; player: PlayerId; unitId: string; to: Position }
   | { type: 'attack'; player: PlayerId; unitId: string; targetUnitId: string }
-  | { type: 'pass'; player: PlayerId }
   | {
       type: 'play_card';
       player: PlayerId;
