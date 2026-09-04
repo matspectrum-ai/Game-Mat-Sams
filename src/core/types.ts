@@ -1,7 +1,14 @@
 export type PlayerId = 'moon' | 'sun';
 export type UnitKind = 'lord' | 'knight' | 'witch' | 'kitten';
-export type CardId = 'fish_bomb' | 'swap_places' | 'spilled_milk' | 'yarnado' | 'orange_braincell';
-export type TileKind = 'floor' | 'destroyed' | 'milk';
+export type CardId =
+  | 'fish_bomb'
+  | 'swap_places'
+  | 'spilled_milk'
+  | 'yarnado'
+  | 'orange_braincell'
+  | 'cardboard_fort'
+  | 'zoomies';
+export type TileKind = 'floor' | 'destroyed' | 'milk' | 'box';
 
 export interface Position {
   x: number;
@@ -52,13 +59,20 @@ export type GameEvent =
   | { type: 'tile_changed'; position: Position; kind: TileKind }
   | { type: 'units_swapped'; firstUnitId: string; secondUnitId: string }
   | { type: 'card_played'; player: PlayerId; card: CardId }
-  | { type: 'turn_started'; player: PlayerId; turn: number }
+  | { type: 'turn_started'; player: PlayerId; turn: number; energy: number }
   | { type: 'game_over'; winner: PlayerId };
 
 export type GameCommand =
   | { type: 'move'; player: PlayerId; unitId: string; to: Position }
   | { type: 'attack'; player: PlayerId; unitId: string; targetUnitId: string }
-  | { type: 'play_card'; player: PlayerId; card: CardId; target?: Position; targetUnitId?: string; secondUnitId?: string };
+  | {
+      type: 'play_card';
+      player: PlayerId;
+      card: CardId;
+      target?: Position;
+      targetUnitId?: string;
+      secondUnitId?: string;
+    };
 
 export interface GameResult {
   ok: boolean;
