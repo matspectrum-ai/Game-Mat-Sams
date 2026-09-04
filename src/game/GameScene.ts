@@ -50,6 +50,14 @@ export class GameScene extends Phaser.Scene {
     super('CATastrophe');
   }
 
+  preload(): void {
+    for (const owner of ['moon', 'sun'] as const) {
+      for (const kind of ['lord', 'knight', 'witch', 'kitten'] as const) {
+        this.load.svg(`cat-${owner}-${kind}`, `/assets/cats/${owner}-${kind}.svg`);
+      }
+    }
+  }
+
   create(): void {
     this.cameras.main.setBackgroundColor('#211713');
     this.bindDomControls();
@@ -211,53 +219,20 @@ export class GameScene extends Phaser.Scene {
     if (!this.boardLayer) return;
 
     const isSelected = unit.id === this.selectedUnitId || unit.id === this.swapFirstUnitId;
-    const moon = unit.owner === 'moon';
-    const fur = moon ? 0x6c507c : 0xc47740;
-    const furDark = moon ? 0x463551 : 0x7b462d;
-    const muzzle = moon ? 0xd9c7df : 0xf1d1ac;
-    const ink = 0x241917;
-    const outline = isSelected ? 0xf4d86e : attackable ? 0xef6255 : ink;
+    const textureKey = `cat-${unit.owner}-${unit.kind}`;
+    const shadow = this.add.ellipse(x + 2, y + 31, 62, 18, 0x100b09, 0.42);
+    const glow = this.add.circle(
+      x,
+      y + 4,
+      unit.kind === 'lord' ? 37 : 33,
+      isSelected ? 0xf0d66d : attackable ? 0xe4544b : unit.owner === 'moon' ? 0x776399 : 0xc87c45,
+      isSelected || attackable ? 0.2 : 0.08,
+    );
+    const sprite = this.add.image(x, y + 2, textureKey)
+      .setDisplaySize(unit.kind === 'kitten' ? 66 : 76, unit.kind === 'kitten' ? 66 : 76)
+      .setInteractive({ useHandCursor: true });
 
-    const shadow = this.add.ellipse(x + 2, y + 29, 62, 20, 0x100b09, 0.42);
-    const body = this.add.ellipse(x, y + 8, unit.kind === 'kitten' ? 45 : 57, unit.kind === 'kitten' ? 48 : 60, fur, 1)
-      .setStrokeStyle(isSelected || attackable ? 4 : 3, outline, 1);
-    const head = this.add.circle(x, y - 12, unit.kind === 'kitten' ? 22 : 26, fur, 1)
-      .setStrokeStyle(3, outline, 1);
-    const earL = this.add.triangle(x - 18, y - 31, 0, 21, 12, 0, 22, 21, fur, 1)
-      .setStrokeStyle(2, outline, 1)
-      .setRotation(-0.08);
-    const earR = this.add.triangle(x + 18, y - 31, 0, 21, 10, 0, 22, 21, fur, 1)
-      .setStrokeStyle(2, outline, 1)
-      .setRotation(0.08);
-
-    const muzzlePatch = this.add.ellipse(x, y - 3, 25, 16, muzzle, 0.92);
-    const eyeL = this.add.circle(x - 8, y - 14, 2.7, ink, 1);
-    const eyeR = this.add.circle(x + 8, y - 14, 2.7, ink, 1);
-    const nose = this.add.triangle(x, y - 5, 0, 0, 7, 0, 3.5, 5, 0xb86663, 1);
-    const mouthL = this.add.line(x - 3, y, 0, 0, -6, 4, ink, 0.85).setLineWidth(1.4);
-    const mouthR = this.add.line(x + 3, y, 0, 0, 6, 4, ink, 0.85).setLineWidth(1.4);
-    const whiskerL = this.add.line(x - 16, y - 1, 0, 0, -16, -2, ink, 0.55).setLineWidth(1);
-    const whiskerR = this.add.line(x + 16, y - 1, 0, 0, 16, -2, ink, 0.55).setLineWidth(1);
-    const tail = this.add.arc(x + 24, y + 13, 19, 250, 80, false, furDark, 0)
-      .setStrokeStyle(6, furDark, 1)
-      .setRotation(0.18);
-
-    const parts: Phaser.GameObjects.GameObject[] = [
-      shadow, tail, body, earL, earR, head, muzzlePatch, eyeL, eyeR, nose, mouthL, mouthR, whiskerL, whiskerR,
-    ];
-
-    this.addClassAccessory(unit, x, y, furDark, outline, parts);
-
-    const label = this.add.text(x, y + 36, UNIT_SHORT_NAMES[unit.kind], {
-      fontFamily: 'Georgia, serif',
-      fontSize: unit.kind === 'kitten' ? '8px' : '9px',
-      color: '#f7e7cf',
-      backgroundColor: '#211613',
-      padding: { x: 4, y: 2 },
-      fontStyle: 'bold',
-    }).setOrigin(0.5);
-
-    const hp = this.add.text(x + 23, y - 39, `${unit.hp}♥`, {
+    const hp = this.add.text(x + 27, y - 34, `${unit.hp}♥`, {
       fontFamily: 'Georgia, serif',
       fontSize: '10px',
       color: '#ffd5c7',
@@ -266,21 +241,23 @@ export class GameScene extends Phaser.Scene {
       fontStyle: 'bold',
     }).setOrigin(0.5);
 
-    parts.push(label, hp);
+    const rank = this.add.text(x, y + 38, UNIT_SHORT_NAMES[unit.kind], {
+      fontFamily: 'Georgia, serif',
+      fontSize: unit.kind === 'kitten' ? '7px' : '8px',
+      color: '#f7e7cf',
+      backgroundColor: '#211613',
+      padding: { x: 4, y: 2 },
+      fontStyle: 'bold',
+    }).setOrigin(0.5);
 
-    for (const object of parts) {
-      if ('setInteractive' in object && typeof object.setInteractive === 'function') {
-        object.setInteractive({ useHandCursor: true });
-        object.on('pointerdown', () => this.handleUnitClick(unit.id));
-      }
-      this.boardLayer.add(object);
-    }
+    sprite.on('pointerdown', () => this.handleUnitClick(unit.id));
+    this.boardLayer.add([shadow, glow, sprite, hp, rank]);
 
     if (isSelected) {
       this.tweens.add({
-        targets: [body, head],
-        scaleX: 1.05,
-        scaleY: 1.05,
+        targets: sprite,
+        y: y - 3,
+        angle: unit.owner === 'moon' ? -2 : 2,
         duration: 420,
         yoyo: true,
         repeat: -1,
@@ -494,6 +471,7 @@ export class GameScene extends Phaser.Scene {
       button.disabled = !available || player.energy < CARD_COSTS[card] || Boolean(this.gameState.winner);
       button.innerHTML = [
         '<span class="card-grain" aria-hidden="true"></span>',
+        `<img class="card-art" src="/assets/cards/${card}.svg" alt="" aria-hidden="true" />`,
         `<span class="card-cost">${CARD_COSTS[card]} <span>🐾</span></span>`,
         `<span class="card-icon" aria-hidden="true">${CARD_ICONS[card]}</span>`,
         `<strong>${CARD_NAMES[card]}</strong>`,
