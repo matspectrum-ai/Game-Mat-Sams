@@ -2,31 +2,42 @@
 
 **Tactics. Mayhem. Treats.**
 
-CATastrophe is a browser-first two-player tactical board game: chess-inspired movement, destructible terrain, illustrated cat factions and absurd rule-breaking cards.
+CATastrophe is a browser-first two-player tactics game: chess-like cat units, destructible and constructible terrain, escalating energy and absurd single-use cards.
 
-## Current vertical slice
+## Current vertical slice — v0.2
+
 - 7×7 tactical board.
-- Local hot-seat play for two players.
+- Local hot-seat play for Mat × Sams.
+- Cinematic intro and illustrated Moon/Sun factions.
 - Lord Cat, Knight Cat, Witch Cat and Kitten units.
 - HP, attacks and immediate victory when a Lord Cat dies.
-- Five single-use cards: Fish Bomb, Swap Places, Spilled Milk, Yarnado and One Orange Braincell.
-- Destroyed terrain and slippery milk tiles.
+- Seven cards:
+  - Fish Bomb
+  - Swap Places
+  - Spilled Milk
+  - Yarnado
+  - One Orange Braincell
+  - Cardboard Fort
+  - Zoomies!
+- Energy ramps fairly by round from 1 to 5.
+- Cardboard Boxes create blocking terrain that can later be destroyed.
+- Destroyed terrain and slippery milk tiles change future movement.
+- Zoomies deliberately breaks a unit's normal movement rule for one action.
 - Deterministic gameplay RNG.
 - Pure TypeScript game core with Vitest coverage.
 - Phaser 4 renderer separated from game rules.
-- Illustrated SVG cat assets for Moon and Sun factions.
-- Illustrated card art.
-- Event-driven VFX for movement, attacks, cards, destruction and victory.
-- Lightweight procedural Web Audio feedback.
-- Cinematic Mat × Sams match intro.
+- Illustrated SVG cat/card assets, VFX, procedural audio cues and victory presentation.
 
 ## Stack
+
 - Phaser 4.2.1
 - TypeScript 6.0.3
 - Vite 8
 - Vitest 4
+- pnpm 10
 
 ## Run locally
+
 ```bash
 pnpm install
 pnpm dev
@@ -35,27 +46,42 @@ pnpm dev
 Then open the URL printed by Vite.
 
 ## Verify
+
 ```bash
 pnpm test
-pnpm build
+pnpm run build
 ```
 
 ## Architecture
+
 ```text
-Browser / Phaser
-      |
-      | commands
-      v
+Browser / Phaser renderer
+        |
+        | commands
+        v
 Pure TypeScript game core
-      |
-      | deterministic state + events
-      v
+        |
+        | deterministic state + events
+        v
 Renderer / future authoritative server
 ```
 
-The game core is intentionally independent from Phaser, DOM and future Supabase code. Multiplayer will reuse the same command-validation layer rather than trusting client state.
+The game core is intentionally independent from Phaser, DOM and future multiplayer infrastructure. Renderer effects consume `GameEvent`s; they do not decide gameplay outcomes.
 
-See `docs/game-spec.md` for the current observable rules and acceptance criteria.
+The determinism contract is:
 
-## Status
-This is an artistic gameplay vertical slice. The rules engine, event pipeline, illustrated factions, cards, VFX and local two-player loop are functional. Online rooms, authoritative multiplayer and final production-quality hand-drawn asset production remain future phases after playtesting the core loop.
+```text
+same state + same command + same seed/RNG step = same result
+```
+
+See `docs/game-spec.md` for the v0.2 observable rules and acceptance criteria.
+
+## Deferred until after local playtesting
+
+- Online rooms / Supabase.
+- Deckbuilding and random card draw.
+- Additional unit classes.
+- Accounts, matchmaking and progression.
+- Full animation sheets and final audio mix.
+
+The next product decision should come from playtesting the local v0.2 loop, not from adding systems speculatively.
