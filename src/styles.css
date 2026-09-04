@@ -553,3 +553,18 @@ body::after {
   .arena { padding:9px; }
   .arena-ribbon { display:none; }
 }
+
+.card-art {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: calc(100% + 2px);
+  aspect-ratio: 12 / 7;
+  object-fit: cover;
+  margin: -2px -1px 10px;
+  border-radius: 10px 8px 12px 7px;
+  border: 1px solid rgba(248,225,190,.12);
+  box-shadow: 0 5px 12px rgba(0,0,0,.22);
+}
+.card-button .card-icon { display:none; }
+.card-button strong { max-width:100%; }
