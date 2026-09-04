@@ -17,7 +17,7 @@ CATastrophe is a browser-first two-player tactics prototype: chess-like pieces, 
 
 ## Stack
 - Phaser 4.2.1
-- TypeScript 7
+- TypeScript 6.0.3
 - Vite 8
 - Vitest 4
 
